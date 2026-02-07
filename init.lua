@@ -899,7 +899,6 @@ require("lazy").setup({
 
 	{ -- Highlight, edit, and navigate code
 		"nvim-treesitter/nvim-treesitter",
-		build = ":TSUpdate", --insures parsers update as when plugin updates
 		config = function()
 			-- ensuring plugins are installed
 			-- autocommand for starting treesitter when a filetype is started handled by treesitter beind the curtaind
@@ -907,6 +906,78 @@ require("lazy").setup({
 				auto_install = true,
 				ensure_installed = { "python", "r", "lua", "vim", "vimdoc", "markdown", "bash" },
 				highlight = { enable = true },
+			})
+		end,
+	},
+
+	{ -- Create REPL windows to excute code without needing to run the whole file
+		"Vigemus/iron.nvim",
+		config = function()
+			local iron = require("iron.core")
+			local view = require("iron.view")
+			local common = require("iron.fts.common")
+
+			iron.setup({
+
+				config = {
+					-- whether a repl should be discarded or not
+					scratch_repl = true,
+					-- repl definitions
+					repl_definition = {
+						python = {
+							command = { "python3" },
+							format = common.bracketed_paste_python,
+							block_dividers = { "# %%", "#%%" },
+							env = { PYTHON_BASIC_REPL = "1" }, --this is needed for python3
+						},
+						r = {
+							command = { "R", "--vanilla" },
+							format = common.bracketed_paste,
+							block_dividers = { "# %%", "#%%", "# ----" },
+						},
+					},
+
+					-- bufnr is the buffer id of the REPL and ft is the filetype
+					repl_filetype = function(bufnr, ft)
+						return ft
+					end,
+					-- send selections to the DAP repl
+					dap_integration = true,
+					-- how repl window should be displayed
+					repl_open_cmd = view.offset({
+						width = 60,
+						height = math.floor(vim.o.lines * 0.75),
+						w_offset = view.helpers.flip(2),
+						h_offset = view.helpers.proportion(1),
+					}),
+				},
+
+				keymaps = {
+					toggle_repl = "<leader>rr",
+					restart_repl = "<leader>rR",
+					send_motion = "<leader>rc",
+					visual_send = "<leader>rc",
+					send_file = "<leader>rf",
+					send_line = "<leader>rl",
+					send_paragraph = "<leader>rp",
+					send_until_cursor = "<leader>ru",
+					send_mark = "<leader>rm",
+					send_code_block = "<leader>rb",
+					send_code_block_and_move = "<leader>rn",
+					mark_motion = "<leader>mc",
+					mark_visual = "<leader>mc",
+					remove_mark = "<leader>md",
+					cr = "<leader>r<cr>",
+					interrupt = "<leader>r<leader>",
+					exit = "<leader>rq",
+					clear = "<leader>cl",
+				},
+
+				highlight = {
+					italic = true,
+				},
+
+				ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
 			})
 		end,
 	},
