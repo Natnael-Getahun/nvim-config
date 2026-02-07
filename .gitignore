@@ -1,0 +1,11 @@
+# Ignore the actual plugin files (Lazy handles these)
+/lazy/
+/lazy-lock.json
+
+# Ignore the binaries and LSPs (Mason handles these)
+/mason/
+
+# Ignore undo history, logs, and swap files
+*.swp
+/undo/
+*.log
