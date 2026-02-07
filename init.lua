@@ -83,7 +83,7 @@ I hope you enjoy your Neovim journey,
 
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
-
+vim.g.python3_host_prog = "/opt/miniconda3/envs/mine/bin/python"
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -500,7 +500,7 @@ require("lazy").setup({
 
 	-- LSP Plugins
 	{
-		-- Main LSP Configuration
+		-- Main LSP Configuration "neovim/nvim-lspconfig",
 		"neovim/nvim-lspconfig",
 		dependencies = {
 			-- Automatically install LSPs and related tools to stdpath for Neovim
@@ -953,24 +953,24 @@ require("lazy").setup({
 				},
 
 				keymaps = {
-					toggle_repl = "<leader>rr",
-					restart_repl = "<leader>rR",
-					send_motion = "<leader>rc",
-					visual_send = "<leader>rc",
-					send_file = "<leader>rf",
-					send_line = "<leader>rl",
-					send_paragraph = "<leader>rp",
-					send_until_cursor = "<leader>ru",
-					send_mark = "<leader>rm",
-					send_code_block = "<leader>rb",
-					send_code_block_and_move = "<leader>rn",
-					mark_motion = "<leader>mc",
-					mark_visual = "<leader>mc",
-					remove_mark = "<leader>md",
-					cr = "<leader>r<cr>",
-					interrupt = "<leader>r<leader>",
-					exit = "<leader>rq",
-					clear = "<leader>cl",
+					toggle_repl = "<leader>tr",
+					restart_repl = "<leader>tR",
+					send_motion = "<leader>tc",
+					visual_send = "<leader>tc",
+					send_file = "<leader>tf",
+					send_line = "<leader>tl",
+					send_paragraph = "<leader>tp",
+					send_until_cursor = "<leader>tu",
+					send_mark = "<leader>tm",
+					send_code_block = "<leader>tb",
+					send_code_block_and_move = "<leader>tn",
+					mark_motion = "<leader>tmc",
+					mark_visual = "<leader>tmc",
+					remove_mark = "<leader>tmd",
+					cr = "<leader>t<cr>",
+					interrupt = "<leader>t<leader>",
+					exit = "<leader>tq",
+					clear = "<leader>tcl",
 				},
 
 				highlight = {
@@ -978,6 +978,144 @@ require("lazy").setup({
 				},
 
 				ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
+			})
+		end,
+	},
+
+	{ -- excute code inline like in jupyter notebook (read docs for pip dependencies)
+		"benlubas/molten-nvim",
+		dependencies = { "3rd/image.nvim" },
+		version = "<2.0.0",
+		build = ":UpdateRemotePlugins",
+		init = function()
+			vim.g.molten_image_provider = "image.nvim"
+			vim.g.molten_output_win_max_height = 20
+			vim.g.molten_virt_text_output = true -- Show output as virtual text
+			vim.g.molten_virt_lines_off_by_1 = false -- Fixes alignment for virtual lines
+			vim.g.molten_auto_open_output = false
+		end,
+		config = function()
+			vim.keymap.set(
+				"n",
+				"<leader>rt",
+				":MoltenInfo<CR>",
+				{ silent = true, desc = "Kernel and other info (molten)" }
+			)
+			vim.keymap.set("n", "<leader>ri", ":MoltenInit<CR>", { silent = true, desc = "Initialize plugin (molten)" })
+			vim.keymap.set(
+				"n",
+				"<leader>rI",
+				":MoltenDeinit<CR>",
+				{ silent = true, desc = "De-Initialize plugin (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>re",
+				":MoltenEvaluateOperator<CR>",
+				{ silent = true, desc = "run operator section (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>rl",
+				":MoltenEvaluateLine<CR>",
+				{ silent = true, desc = "evaluate line (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>rr",
+				":MoltenReevaluateCell<CR>",
+				{ silent = true, desc = "re-evaluete cell (molten)" }
+			)
+			vim.keymap.set(
+				"v",
+				"<leader>rv",
+				":<C-u>MoltenEvaluateVisual<CR>gv",
+				{ silent = true, desc = "evaluate visual selection (molten)" }
+			)
+			vim.keymap.set("n", "<leader>rk", ":MoltenRestart<CR>", { silent = true, desc = "restart kernel (molten)" })
+			vim.keymap.set(
+				"n",
+				"<leader>rc",
+				":MoltenInterrupt<CR>",
+				{ silent = true, desc = "keyoboard inturrupt kernel (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>rn",
+				":MoltenNext<CR>",
+				{ silent = true, desc = "go to the next code cell (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>rN",
+				":MoltenPrev<CR>",
+				{ silent = true, desc = "go to the previous code cell (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>rd",
+				":MoltenDelete<CR>",
+				{ silent = true, desc = "molten delete cell (molten)" }
+			)
+			vim.keymap.set("n", "<leader>rh", ":MoltenHideOutput<CR>", { silent = true, desc = "hide output (molten)" })
+			vim.keymap.set(
+				"n",
+				"<leader>rs",
+				":noautocmd MoltenEnterOutput<CR>",
+				{ silent = true, desc = "show/enter output (molten)" }
+			)
+		end,
+	},
+
+	{ -- rendering image (dependency for molten nvim)
+		"3rd/image.nvim",
+		build = false,
+		config = function()
+			require("image").setup({
+				backend = "kitty", -- or "ueberzug" or "sixel"
+				processor = "magick_cli", -- or "magick_rock"
+				integrations = {
+					markdown = {
+						enabled = true,
+						clear_in_insert_mode = false,
+						download_remote_images = true,
+						only_render_image_at_cursor = false,
+						only_render_image_at_cursor_mode = "inline", -- or "popup"
+						floating_windows = false, -- if true, images will be rendered in floating markdown windows
+						filetypes = { "markdown", "vimwiki", "quarto" }, -- markdown extensions (ie. quarto) can go here
+					},
+					neorg = {
+						enabled = true,
+						filetypes = { "norg" },
+					},
+					typst = {
+						enabled = true,
+						filetypes = { "typst" },
+					},
+					html = {
+						enabled = false,
+					},
+					css = {
+						enabled = false,
+					},
+				},
+				max_width = 100,
+				max_height = 12,
+				max_width_window_percentage = math.huge,
+				max_height_window_percentage = math.huge,
+				scale_factor = 1.0,
+				window_overlap_clear_enabled = true, -- toggles images when windows are overlapped
+				window_overlap_clear_ft_ignore = {
+					"cmp_menu",
+					"cmp_docs",
+					"snacks_notif",
+					"scrollview",
+					"scrollview_sign",
+					"",
+				},
+				editor_only_render_when_focused = false, -- auto show/hide images when the editor gains/looses focus
+				tmux_show_only_in_active_window = false, -- auto show/hide images in the correct Tmux window (needs visual-activity off)
+				hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.avif" }, -- render image files as images when opened
 			})
 		end,
 	},
