@@ -83,6 +83,8 @@ I hope you enjoy your Neovim journey,
 
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
+-- Add npm global bin to PATH so tree-sitter CLI is found
+vim.env.PATH = vim.env.PATH .. ":/home/natnaelgetahun/.npm-global/bin"
 vim.g.python3_host_prog = "/opt/miniconda3/envs/mine/bin/python"
 -- Set <space> as the leader key
 -- See `:help mapleader`
@@ -516,6 +518,22 @@ require("lazy").setup({
 			"saghen/blink.cmp",
 		},
 		config = function()
+			-- otter for quatro running
+			require("blink.cmp").setup({
+				sources = {
+					-- Add 'otter' to the default list
+					default = { "lsp", "path", "snippets", "buffer", "otter" },
+					providers = {
+						otter = {
+							name = "otter",
+							module = "blink-cmp-otter", -- Make sure to install this plugin too!
+							score_offset = 100,
+							async = true,
+						},
+					},
+				},
+			})
+
 			-- Brief aside: **What is LSP?**
 			--
 			-- LSP is an initialism you've probably heard, but might not understand what it is.
@@ -657,6 +675,8 @@ require("lazy").setup({
 				server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
 				vim.lsp.config(name, server)
 				vim.lsp.enable(name)
+				-- for otter that works with qutro
+				require("otter").activate({ name }, { lsp = { snippets = true } })
 			end
 
 			-- Special Lua Config, as recommended by neovim help docs
@@ -904,7 +924,7 @@ require("lazy").setup({
 			-- autocommand for starting treesitter when a filetype is started handled by treesitter beind the curtaind
 			require("nvim-treesitter").setup({
 				auto_install = true,
-				ensure_installed = { "python", "r", "lua", "vim", "vimdoc", "markdown", "bash" },
+				ensure_installed = { "markdown_inline", "python", "r", "lua", "vim", "vimdoc", "markdown", "bash" },
 				highlight = { enable = true },
 			})
 		end,
@@ -997,70 +1017,70 @@ require("lazy").setup({
 		config = function()
 			vim.keymap.set(
 				"n",
-				"<leader>rt",
+				"<leader>mt",
 				":MoltenInfo<CR>",
 				{ silent = true, desc = "Kernel and other info (molten)" }
 			)
-			vim.keymap.set("n", "<leader>ri", ":MoltenInit<CR>", { silent = true, desc = "Initialize plugin (molten)" })
+			vim.keymap.set("n", "<leader>mi", ":MoltenInit<CR>", { silent = true, desc = "Initialize plugin (molten)" })
 			vim.keymap.set(
 				"n",
-				"<leader>rI",
+				"<leader>mI",
 				":MoltenDeinit<CR>",
 				{ silent = true, desc = "De-Initialize plugin (molten)" }
 			)
 			vim.keymap.set(
 				"n",
-				"<leader>re",
+				"<leader>me",
 				":MoltenEvaluateOperator<CR>",
 				{ silent = true, desc = "run operator section (molten)" }
 			)
 			vim.keymap.set(
 				"n",
-				"<leader>rl",
+				"<leader>ml",
 				":MoltenEvaluateLine<CR>",
 				{ silent = true, desc = "evaluate line (molten)" }
 			)
 			vim.keymap.set(
 				"n",
-				"<leader>rr",
+				"<leader>mr",
 				":MoltenReevaluateCell<CR>",
 				{ silent = true, desc = "re-evaluete cell (molten)" }
 			)
 			vim.keymap.set(
 				"v",
-				"<leader>rv",
+				"<leader>mv",
 				":<C-u>MoltenEvaluateVisual<CR>gv",
 				{ silent = true, desc = "evaluate visual selection (molten)" }
 			)
-			vim.keymap.set("n", "<leader>rk", ":MoltenRestart<CR>", { silent = true, desc = "restart kernel (molten)" })
+			vim.keymap.set("n", "<leader>mk", ":MoltenRestart<CR>", { silent = true, desc = "restart kernel (molten)" })
 			vim.keymap.set(
 				"n",
-				"<leader>rc",
+				"<leader>mc",
 				":MoltenInterrupt<CR>",
 				{ silent = true, desc = "keyoboard inturrupt kernel (molten)" }
 			)
 			vim.keymap.set(
 				"n",
-				"<leader>rn",
+				"<leader>mn",
 				":MoltenNext<CR>",
 				{ silent = true, desc = "go to the next code cell (molten)" }
 			)
 			vim.keymap.set(
 				"n",
-				"<leader>rN",
+				"<leader>mN",
 				":MoltenPrev<CR>",
 				{ silent = true, desc = "go to the previous code cell (molten)" }
 			)
 			vim.keymap.set(
 				"n",
-				"<leader>rd",
+				"<leader>md",
 				":MoltenDelete<CR>",
 				{ silent = true, desc = "molten delete cell (molten)" }
 			)
-			vim.keymap.set("n", "<leader>rh", ":MoltenHideOutput<CR>", { silent = true, desc = "hide output (molten)" })
+			vim.keymap.set("n", "<leader>mh", ":MoltenHideOutput<CR>", { silent = true, desc = "hide output (molten)" })
 			vim.keymap.set(
 				"n",
-				"<leader>rs",
+				"<leader>ms",
 				":noautocmd MoltenEnterOutput<CR>",
 				{ silent = true, desc = "show/enter output (molten)" }
 			)
@@ -1118,6 +1138,79 @@ require("lazy").setup({
 				hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.avif" }, -- render image files as images when opened
 			})
 		end,
+	},
+
+	{ -- quarto plugin for qmd and jupyter notebook things
+		"quarto-dev/quarto-nvim",
+		dependencies = {
+			"jmbuhr/otter.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		},
+		config = function()
+			local quarto = require("quarto")
+			quarto.setup({
+				debug = false,
+				closePreviewOnExit = true,
+				lspFeatures = {
+					enabled = true,
+					chunks = "curly",
+					languages = { "r", "python", "julia", "bash", "html" },
+					diagnostics = {
+						enabled = true,
+						triggers = { "BufWritePost" },
+					},
+					completion = {
+						enabled = true,
+					},
+				},
+				codeRunner = {
+					enabled = true,
+					default_method = "molten", -- "molten", "slime", "iron" or <function>
+					ft_runners = { python = "molten", r = "molten" }, -- filetype to runner, ie. `{ python = "molten" }`.
+					-- Takes precedence over `default_method`
+					never_run = { "yaml" }, -- filetypes which are never sent to a code runner
+				},
+			})
+			vim.keymap.set(
+				"n",
+				"<leader>rp",
+				quarto.quartoPreview,
+				{ silent = true, noremap = true, desc = "quarto preview (quarto)" }
+			)
+
+			local runner = require("quarto.runner")
+			vim.keymap.set("n", "<leader>rc", runner.run_cell, { desc = "run cell (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>ra", runner.run_above, { desc = "run cell and above (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>rA", runner.run_all, { desc = "run all cells (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>rl", runner.run_line, { desc = "run line (quarto)", silent = true })
+			vim.keymap.set("v", "<leader>r", runner.run_range, { desc = "run visual range (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>RA", function()
+				runner.run_all(true)
+			end, { desc = "run all cells of all languages (quarto)", silent = true })
+
+			local opts = { noremap = true, silent = true }
+
+			-- Keymap for R Chunks
+			vim.keymap.set("n", "<leader>ir", function()
+				vim.api.nvim_put({ "```{r}", "", "```" }, "l", true, true)
+				vim.cmd("normal! k") -- Move cursor up one line into the empty space
+				vim.cmd("startinsert") -- Drop into Insert mode
+			end, { desc = "[I]nsert [R] Chunk" })
+
+			-- Keymap for Python Chunks
+			vim.keymap.set("n", "<leader>ip", function()
+				vim.api.nvim_put({ "```{python}", "", "```" }, "l", true, true)
+				vim.cmd("normal! k")
+				vim.cmd("startinsert")
+			end, { desc = "[I]nsert [P]ython Chunk" })
+		end,
+	},
+
+	-- Otter itself (the engine for embedded LSPs)
+	{
+		"jmbuhr/otter.nvim",
+		dependencies = { "nvim-treesitter/nvim-treesitter" },
+		opts = {},
 	},
 
 	-- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
