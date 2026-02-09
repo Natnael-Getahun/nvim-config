@@ -1,89 +1,6 @@
---[[
-
-=====================================================================
-==================== READ THIS BEFORE CONTINUING ====================
-=====================================================================
-========                                    .-----.          ========
-========         .----------------------.   | === |          ========
-========         |.-""""""""""""""""""-.|   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||   KICKSTART.NVIM   ||   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||                    ||   |-----|          ========
-========         ||:Tutor              ||   |:::::|          ========
-========         |'-..................-'|   |____o|          ========
-========         `"")----------------(""`   ___________      ========
-========        /::::::::::|  |::::::::::\  \ no mouse \     ========
-========       /:::========|  |==hjkl==:::\  \ required \    ========
-========      '""""""""""""'  '""""""""""""'  '""""""""""'   ========
-========                                                     ========
-=====================================================================
-=====================================================================
-
-What is Kickstart?
-
-  Kickstart.nvim is *not* a distribution.
-
-  Kickstart.nvim is a starting point for your own configuration.
-    The goal is that you can read every line of code, top-to-bottom, understand
-    what your configuration is doing, and modify it to suit your needs.
-
-    Once you've done that, you can start exploring, configuring and tinkering to
-    make Neovim your own! That might mean leaving Kickstart just the way it is for a while
-    or immediately breaking it into modular pieces. It's up to you!
-
-    If you don't know anything about Lua, I recommend taking some time to read through
-    a guide. One possible example which will only take 10-15 minutes:
-      - https://learnxinyminutes.com/docs/lua/
-
-    After understanding a bit more about Lua, you can use `:help lua-guide` as a
-    reference for how Neovim integrates Lua.
-    - :help lua-guide
-    - (or HTML version): https://neovim.io/doc/user/lua-guide.html
-
-Kickstart Guide:
-
-  TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
-
-    If you don't know what this means, type the following:
-      - <escape key>
-      - :
-      - Tutor
-      - <enter key>
-
-    (If you already know the Neovim basics, you can skip this step.)
-
-  Once you've completed that, you can continue working through **AND READING** the rest
-  of the kickstart init.lua.
-
-  Next, run AND READ `:help`.
-    This will open up a help window with some basic information
-    about reading, navigating and searching the builtin help documentation.
-
-    This should be the first place you go to look when you're stuck or confused
-    with something. It's one of my favorite Neovim features.
-
-    MOST IMPORTANTLY, we provide a keymap "<space>sh" to [s]earch the [h]elp documentation,
-    which is very useful when you're not exactly sure of what you're looking for.
-
-  I have left several `:help X` comments throughout the init.lua
-    These are hints about where to find more information about the relevant settings,
-    plugins or Neovim features used in Kickstart.
-
-   NOTE: Look for lines like this
-
-    Throughout the file. These are for you, the reader, to help you understand what is happening.
-    Feel free to delete them once you know what you're doing, but they should serve as a guide
-    for when you are first encountering a few different constructs in your Neovim config.
-
-If you experience any errors while trying to install kickstart, run `:checkhealth` for more info.
-
-I hope you enjoy your Neovim journey,
-- TJ
-
-P.S. You can delete this when you're done too. It's your config now! :)
---]]
-
+-- Add npm global bin to PATH so tree-sitter CLI is found
+vim.env.PATH = vim.env.PATH .. ":/home/natnaelgetahun/.npm-global/bin"
+vim.g.python3_host_prog = "/opt/miniconda3/envs/mine/bin/python"
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -500,7 +417,7 @@ require("lazy").setup({
 
 	-- LSP Plugins
 	{
-		-- Main LSP Configuration
+		-- Main LSP Configuration "neovim/nvim-lspconfig",
 		"neovim/nvim-lspconfig",
 		dependencies = {
 			-- Automatically install LSPs and related tools to stdpath for Neovim
@@ -516,6 +433,22 @@ require("lazy").setup({
 			"saghen/blink.cmp",
 		},
 		config = function()
+			-- otter for quatro running
+			require("blink.cmp").setup({
+				sources = {
+					-- Add 'otter' to the default list
+					default = { "lsp", "path", "snippets", "buffer", "otter" },
+					providers = {
+						otter = {
+							name = "otter",
+							module = "blink-cmp-otter", -- Make sure to install this plugin too!
+							score_offset = 100,
+							async = true,
+						},
+					},
+				},
+			})
+
 			-- Brief aside: **What is LSP?**
 			--
 			-- LSP is an initialism you've probably heard, but might not understand what it is.
@@ -657,6 +590,8 @@ require("lazy").setup({
 				server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
 				vim.lsp.config(name, server)
 				vim.lsp.enable(name)
+				-- for otter that works with qutro
+				require("otter").activate({ name }, { lsp = { snippets = true } })
 			end
 
 			-- Special Lua Config, as recommended by neovim help docs
@@ -899,16 +834,299 @@ require("lazy").setup({
 
 	{ -- Highlight, edit, and navigate code
 		"nvim-treesitter/nvim-treesitter",
-		build = ":TSUpdate", --insures parsers update as when plugin updates
+		build = ":TSUpdate",
 		config = function()
 			-- ensuring plugins are installed
 			-- autocommand for starting treesitter when a filetype is started handled by treesitter beind the curtaind
 			require("nvim-treesitter").setup({
 				auto_install = true,
-				ensure_installed = { "python", "r", "lua", "vim", "vimdoc", "markdown", "bash" },
+				ensure_installed = { "markdown_inline", "python", "r", "lua", "vim", "vimdoc", "markdown", "bash" },
 				highlight = { enable = true },
 			})
 		end,
+	},
+
+	{ -- Create REPL windows to excute code without needing to run the whole file
+		"Vigemus/iron.nvim",
+		config = function()
+			local iron = require("iron.core")
+			local view = require("iron.view")
+			local common = require("iron.fts.common")
+
+			iron.setup({
+
+				config = {
+					-- whether a repl should be discarded or not
+					scratch_repl = true,
+					-- repl definitions
+					repl_definition = {
+						python = {
+							command = { "python3" },
+							format = common.bracketed_paste_python,
+							block_dividers = { "# %%", "#%%" },
+							env = { PYTHON_BASIC_REPL = "1" }, --this is needed for python3
+						},
+						r = {
+							command = { "R", "--vanilla" },
+							format = common.bracketed_paste,
+							block_dividers = { "# %%", "#%%", "# ----" },
+						},
+					},
+
+					-- bufnr is the buffer id of the REPL and ft is the filetype
+					repl_filetype = function(bufnr, ft)
+						return ft
+					end,
+					-- send selections to the DAP repl
+					dap_integration = true,
+					-- how repl window should be displayed
+					repl_open_cmd = view.offset({
+						width = 60,
+						height = math.floor(vim.o.lines * 0.75),
+						w_offset = view.helpers.flip(2),
+						h_offset = view.helpers.proportion(1),
+					}),
+				},
+
+				keymaps = {
+					toggle_repl = "<leader>tr",
+					restart_repl = "<leader>tR",
+					send_motion = "<leader>tc",
+					visual_send = "<leader>tc",
+					send_file = "<leader>tf",
+					send_line = "<leader>tl",
+					send_paragraph = "<leader>tp",
+					send_until_cursor = "<leader>tu",
+					send_mark = "<leader>tm",
+					send_code_block = "<leader>tb",
+					send_code_block_and_move = "<leader>tn",
+					mark_motion = "<leader>tmc",
+					mark_visual = "<leader>tmc",
+					remove_mark = "<leader>tmd",
+					cr = "<leader>t<cr>",
+					interrupt = "<leader>t<leader>",
+					exit = "<leader>tq",
+					clear = "<leader>tcl",
+				},
+
+				highlight = {
+					italic = true,
+				},
+
+				ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
+			})
+		end,
+	},
+
+	{ -- excute code inline like in jupyter notebook (read docs for pip dependencies)
+		"benlubas/molten-nvim",
+		dependencies = { "3rd/image.nvim" },
+		version = "<2.0.0",
+		build = ":UpdateRemotePlugins",
+		init = function()
+			vim.g.molten_image_provider = "image.nvim"
+			vim.g.molten_output_win_max_height = 20
+			vim.g.molten_virt_text_output = true -- Show output as virtual text
+			vim.g.molten_virt_lines_off_by_1 = false -- Fixes alignment for virtual lines
+			vim.g.molten_auto_open_output = false
+		end,
+		config = function()
+			vim.keymap.set(
+				"n",
+				"<leader>mt",
+				":MoltenInfo<CR>",
+				{ silent = true, desc = "Kernel and other info (molten)" }
+			)
+			vim.keymap.set("n", "<leader>mi", ":MoltenInit<CR>", { silent = true, desc = "Initialize plugin (molten)" })
+			vim.keymap.set(
+				"n",
+				"<leader>mI",
+				":MoltenDeinit<CR>",
+				{ silent = true, desc = "De-Initialize plugin (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>me",
+				":MoltenEvaluateOperator<CR>",
+				{ silent = true, desc = "run operator section (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>ml",
+				":MoltenEvaluateLine<CR>",
+				{ silent = true, desc = "evaluate line (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>mr",
+				":MoltenReevaluateCell<CR>",
+				{ silent = true, desc = "re-evaluete cell (molten)" }
+			)
+			vim.keymap.set(
+				"v",
+				"<leader>mv",
+				":<C-u>MoltenEvaluateVisual<CR>gv",
+				{ silent = true, desc = "evaluate visual selection (molten)" }
+			)
+			vim.keymap.set("n", "<leader>mk", ":MoltenRestart<CR>", { silent = true, desc = "restart kernel (molten)" })
+			vim.keymap.set(
+				"n",
+				"<leader>mc",
+				":MoltenInterrupt<CR>",
+				{ silent = true, desc = "keyoboard inturrupt kernel (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>mn",
+				":MoltenNext<CR>",
+				{ silent = true, desc = "go to the next code cell (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>mN",
+				":MoltenPrev<CR>",
+				{ silent = true, desc = "go to the previous code cell (molten)" }
+			)
+			vim.keymap.set(
+				"n",
+				"<leader>md",
+				":MoltenDelete<CR>",
+				{ silent = true, desc = "molten delete cell (molten)" }
+			)
+			vim.keymap.set("n", "<leader>mh", ":MoltenHideOutput<CR>", { silent = true, desc = "hide output (molten)" })
+			vim.keymap.set(
+				"n",
+				"<leader>ms",
+				":noautocmd MoltenEnterOutput<CR>",
+				{ silent = true, desc = "show/enter output (molten)" }
+			)
+		end,
+	},
+
+	{ -- rendering image (dependency for molten nvim)
+		"3rd/image.nvim",
+		build = false,
+		config = function()
+			require("image").setup({
+				backend = "kitty", -- or "ueberzug" or "sixel"
+				processor = "magick_cli", -- or "magick_rock"
+				integrations = {
+					markdown = {
+						enabled = true,
+						clear_in_insert_mode = false,
+						download_remote_images = true,
+						only_render_image_at_cursor = false,
+						only_render_image_at_cursor_mode = "inline", -- or "popup"
+						floating_windows = false, -- if true, images will be rendered in floating markdown windows
+						filetypes = { "markdown", "vimwiki", "quarto" }, -- markdown extensions (ie. quarto) can go here
+					},
+					neorg = {
+						enabled = true,
+						filetypes = { "norg" },
+					},
+					typst = {
+						enabled = true,
+						filetypes = { "typst" },
+					},
+					html = {
+						enabled = false,
+					},
+					css = {
+						enabled = false,
+					},
+				},
+				max_width = 100,
+				max_height = 12,
+				max_width_window_percentage = math.huge,
+				max_height_window_percentage = math.huge,
+				scale_factor = 1.0,
+				window_overlap_clear_enabled = true, -- toggles images when windows are overlapped
+				window_overlap_clear_ft_ignore = {
+					"cmp_menu",
+					"cmp_docs",
+					"snacks_notif",
+					"scrollview",
+					"scrollview_sign",
+					"",
+				},
+				editor_only_render_when_focused = false, -- auto show/hide images when the editor gains/looses focus
+				tmux_show_only_in_active_window = false, -- auto show/hide images in the correct Tmux window (needs visual-activity off)
+				hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.avif" }, -- render image files as images when opened
+			})
+		end,
+	},
+
+	{ -- quarto plugin for qmd and jupyter notebook things
+		"quarto-dev/quarto-nvim",
+		dependencies = {
+			"jmbuhr/otter.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		},
+		config = function()
+			local quarto = require("quarto")
+			quarto.setup({
+				debug = false,
+				closePreviewOnExit = true,
+				lspFeatures = {
+					enabled = true,
+					chunks = "curly",
+					languages = { "r", "python", "julia", "bash", "html" },
+					diagnostics = {
+						enabled = true,
+						triggers = { "BufWritePost" },
+					},
+					completion = {
+						enabled = true,
+					},
+				},
+				codeRunner = {
+					enabled = true,
+					default_method = "molten", -- "molten", "slime", "iron" or <function>
+					ft_runners = { python = "molten", r = "molten" }, -- filetype to runner, ie. `{ python = "molten" }`.
+					-- Takes precedence over `default_method`
+					never_run = { "yaml" }, -- filetypes which are never sent to a code runner
+				},
+			})
+			vim.keymap.set(
+				"n",
+				"<leader>rp",
+				quarto.quartoPreview,
+				{ silent = true, noremap = true, desc = "quarto preview (quarto)" }
+			)
+
+			local runner = require("quarto.runner")
+			vim.keymap.set("n", "<leader>rc", runner.run_cell, { desc = "run cell (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>ra", runner.run_above, { desc = "run cell and above (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>rA", runner.run_all, { desc = "run all cells (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>rl", runner.run_line, { desc = "run line (quarto)", silent = true })
+			vim.keymap.set("v", "<leader>r", runner.run_range, { desc = "run visual range (quarto)", silent = true })
+			vim.keymap.set("n", "<leader>RA", function()
+				runner.run_all(true)
+			end, { desc = "run all cells of all languages (quarto)", silent = true })
+
+			local opts = { noremap = true, silent = true }
+
+			-- Keymap for R Chunks
+			vim.keymap.set("n", "<leader>ir", function()
+				vim.api.nvim_put({ "```{r}", "", "```" }, "l", true, true)
+				vim.cmd("normal! k") -- Move cursor up one line into the empty space
+				vim.cmd("startinsert") -- Drop into Insert mode
+			end, { desc = "[I]nsert [R] Chunk" })
+
+			-- Keymap for Python Chunks
+			vim.keymap.set("n", "<leader>ip", function()
+				vim.api.nvim_put({ "```{python}", "", "```" }, "l", true, true)
+				vim.cmd("normal! k")
+				vim.cmd("startinsert")
+			end, { desc = "[I]nsert [P]ython Chunk" })
+		end,
+	},
+
+	-- Otter itself (the engine for embedded LSPs)
+	{
+		"jmbuhr/otter.nvim",
+		dependencies = { "nvim-treesitter/nvim-treesitter" },
+		opts = {},
 	},
 
 	-- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
